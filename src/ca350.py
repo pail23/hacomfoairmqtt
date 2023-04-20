@@ -53,7 +53,7 @@ HAAutoDiscoveryDeviceName = config['HA']['HAAutoDiscoveryDeviceName']           
 HAAutoDiscoveryDeviceId = config['HA']['HAAutoDiscoveryDeviceId']     # Home Assistant Unique Id
 HAAutoDiscoveryDeviceManufacturer = config['HA']['HAAutoDiscoveryDeviceManufacturer']
 HAAutoDiscoveryDeviceModel = config['HA']['HAAutoDiscoveryDeviceModel']
-
+ha_mqtt_topic = f"comfoair/{HAAutoDiscoveryDeviceId}"
 
 print("*****************************")
 print("* CA350 MQTT Home Assistant *")
@@ -149,49 +149,49 @@ def on_message(client, userdata, message):
     #print("message check")
     msg_data = str(message.payload.decode("utf-8"))
     fan_level = -1
-    if message.topic == "comfoair/ha_climate_mode/fan/set":
+    if message.topic == f"{ha_mqtt_topic}/ha_climate_mode/fan/set":
         selector = msg_data
         if selector == "off":
-            print("comfoair/ha_climate_mode/fan/set is off (speed 10)")
+            print(f"{ha_mqtt_topic}//ha_climate_mode/fan/set is off (speed 10)")
             fan_level = 1
         elif selector == "low":
-            print("comfoair/ha_climate_mode/fan/set is low (speed 20)")
+            print(f"{ha_mqtt_topic}/ha_climate_mode/fan/set is low (speed 20)")
             fan_level = 2
         elif selector == "medium":
-            print("comfoair/ha_climate_mode/fan/set is medium (speed 30)")
+            print(f"{ha_mqtt_topic}/ha_climate_mode/fan/set is medium (speed 30)")
             fan_level = 3
         elif selector == "high":
-            print("comfoair/ha_climate_mode/fan/set is high (speed 40)")
+            print(f"{ha_mqtt_topic}/ha_climate_mode/fan/set is high (speed 40)")
             fan_level = 4
         else:
-            print("comfoair/ha_climate_mode/fan/set got unkown value "+msg_data)
-    elif message.topic == "comfoair/ha_climate_mode/set":
+            print(f"{ha_mqtt_topic}/ha_climate_mode/fan/set got unkown value "+msg_data)
+    elif message.topic == f"{ha_mqtt_topic}/ha_climate_mode/set":
         selector = msg_data
         if selector == "off":
-            print("comfoair/on/set is 10")
+            print(f"{ha_mqtt_topic}/on/set is 10")
             fan_level = 1
         elif selector == "fan_only":
-            print("comfoair/on/set is 20")
+            print(f"{ha_mqtt_topic}/on/set is 20")
             fan_level = 2
-    elif message.topic == "comfoair/comforttemp/set":
+    elif message.topic == f"{ha_mqtt_topic}/comforttemp/set":
         comforttemp = int(float(msg_data))
         if RS485_protocol == False:
             set_comfort_temperature(comforttemp)
             get_temp()
-    elif message.topic == "comfoair/reset_filter":
+    elif message.topic == f"{ha_mqtt_topic}/reset_filter":
         selector = msg_data
         if selector == "PRESS":
             reset_filter_timer()
-    elif message.topic == "comfoair/filterweeks":
+    elif message.topic == f"{ha_mqtt_topic}/filterweeks":
         filter_weeks = int(msg_data)    
         set_filter_weeks(filter_weeks)
-    elif message.topic == "comfoair/ewtlowtemp":
+    elif message.topic == f"{ha_mqtt_topic}/ewtlowtemp":
         ewtlowtemp = int(msg_data)
         set_ewt(ewtlowtemp=ewtlowtemp)
-    elif message.topic == "comfoair/ewthightemp":
+    elif message.topic == f"{ha_mqtt_topic}/ewthightemp":
         ewthightemp = int(msg_data)
         set_ewt(ewthightemp=ewthightemp)
-    elif message.topic == "comfoair/ewtspeedup":
+    elif message.topic == f"{ha_mqtt_topic}/ewtspeedup":
         print("Message "+message.topic+" with message: "+msg_data)
         ewtspeedup = int(msg_data)
         set_ewt(ewtspeedup=ewtspeedup)
@@ -797,22 +797,22 @@ def recon():
 
 def topic_subscribe():
     try:
-        mqttc.subscribe("comfoair/comforttemp/set", 0)
+        mqttc.subscribe(f"{ha_mqtt_topic}/comforttemp/set", 0)
         info_msg('Successfull subscribed to the comfoair/comforttemp/set topic')
-        mqttc.subscribe("comfoair/ha_climate_mode/set", 0)
+        mqttc.subscribe(f"{ha_mqtt_topic}/ha_climate_mode/set", 0)
         info_msg('Successfull subscribed to the comfoair/ha_climate_mode/set topic')
-        mqttc.subscribe("comfoair/ha_climate_mode/fan/set", 0)
+        mqttc.subscribe(f"{ha_mqtt_topic}/ha_climate_mode/fan/set", 0)
         info_msg('Successfull subscribed to the comfoair/ha_climate_mode/fan/set topic')
-        mqttc.subscribe("comfoair/reset_filter", 0)
+        mqttc.subscribe(f"{ha_mqtt_topic}/reset_filter", 0)
         info_msg('Successfull subscribed to the comfoair/reset_filter topic')
-        mqttc.subscribe("comfoair/filterweeks", 0)
+        mqttc.subscribe(f"{ha_mqtt_topic}/filterweeks", 0)
         info_msg('Successfull subscribed to the comfoair/filterweeks topic')
 
-        mqttc.subscribe("comfoair/ewtlowtemp", 0)
+        mqttc.subscribe(f"{ha_mqtt_topic}/ewtlowtemp", 0)
         info_msg('Successfull subscribed to the comfoair/ewtlowtemp topic')
-        mqttc.subscribe("comfoair/ewthightemp", 0)
+        mqttc.subscribe(f"{ha_mqtt_topic}/ewthightemp", 0)
         info_msg('Successfull subscribed to the comfoair/ewthightemp topic')
-        mqttc.subscribe("comfoair/ewtspeedup", 0)
+        mqttc.subscribe(f"{ha_mqtt_topic}/ewtspeedup", 0)
         info_msg('Successfull subscribed to the comfoair/ewtspeedup topic')
         
     except:
@@ -826,7 +826,7 @@ def send_autodiscover(name, entity_id, entity_type, state_topic = None, device_c
 
     discovery_message = {
         "name": HAAutoDiscoveryDeviceName + " " + name,
-        "availability_topic":"comfoair/status",
+        "availability_topic":f"{ha_mqtt_topic}/status",
         "payload_available":"online",
         "payload_not_available":"offline",
         "unique_id": sensor_unique_id,
@@ -868,7 +868,7 @@ def send_autodiscover(name, entity_id, entity_type, state_topic = None, device_c
     publish_message(mqtt_message, mqtt_config_topic)
 
 def on_connect(client, userdata, flags, rc):
-    publish_message("online","comfoair/status")
+    publish_message("online",f"{ha_mqtt_topic}/status")
 	# Temporary: deletion of old topic for Fan entity auto discovery
     delete_message("homeassistant/fan/ca350_fan/config")
 	
@@ -877,170 +877,170 @@ def on_connect(client, userdata, flags, rc):
 
         # Temperature readings
         send_autodiscover(
-            name="Outside temperature", entity_id="ca350_outsidetemp", entity_type="sensor",
-            state_topic="comfoair/outsidetemp", device_class="temperature", unit_of_measurement="°C"
+            name="Outside temperature", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_outsidetemp", entity_type="sensor",
+            state_topic=f"{ha_mqtt_topic}/outsidetemp", device_class="temperature", unit_of_measurement="°C"
         )
         send_autodiscover(
-            name="Supply temperature", entity_id="ca350_supplytemp", entity_type="sensor",
-            state_topic="comfoair/supplytemp", device_class="temperature", unit_of_measurement="°C"
+            name="Supply temperature", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_supplytemp", entity_type="sensor",
+            state_topic=f"{ha_mqtt_topic}/supplytemp", device_class="temperature", unit_of_measurement="°C"
         )
         send_autodiscover(
-            name="Exhaust temperature", entity_id="ca350_exhausttemp", entity_type="sensor",
-            state_topic="comfoair/exhausttemp", device_class="temperature", unit_of_measurement="°C"
+            name="Exhaust temperature", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_exhausttemp", entity_type="sensor",
+            state_topic=f"{ha_mqtt_topic}/exhausttemp", device_class="temperature", unit_of_measurement="°C"
         )
         send_autodiscover(
-            name="Return temperature", entity_id="ca350_returntemp", entity_type="sensor",
-            state_topic="comfoair/returntemp", device_class="temperature", unit_of_measurement="°C"
+            name="Return temperature", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_returntemp", entity_type="sensor",
+            state_topic=f"{ha_mqtt_topic}/returntemp", device_class="temperature", unit_of_measurement="°C"
         )
 
         # Analog sensors
         send_autodiscover(
-            name="Analog sensor 1", entity_id="ca350_analog_sensor_1", entity_type="sensor",
-            state_topic="comfoair/analog_sensor_1", unit_of_measurement="%", icon="mdi:gauge"
+            name="Analog sensor 1", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_analog_sensor_1", entity_type="sensor",
+            state_topic=f"{ha_mqtt_topic}/analog_sensor_1", unit_of_measurement="%", icon="mdi:gauge"
         )
         send_autodiscover(
-            name="Analog sensor 2", entity_id="ca350_analog_sensor_2", entity_type="sensor",
-            state_topic="comfoair/analog_sensor_2", unit_of_measurement="%", icon="mdi:gauge"
+            name="Analog sensor 2", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_analog_sensor_2", entity_type="sensor",
+            state_topic=f"{ha_mqtt_topic}/analog_sensor_2", unit_of_measurement="%", icon="mdi:gauge"
         )
         send_autodiscover(
-            name="Analog sensor 3", entity_id="ca350_analog_sensor_3", entity_type="sensor",
-            state_topic="comfoair/analog_sensor_3", unit_of_measurement="%", icon="mdi:gauge"
+            name="Analog sensor 3", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_analog_sensor_3", entity_type="sensor",
+            state_topic=f"{ha_mqtt_topic}/analog_sensor_3", unit_of_measurement="%", icon="mdi:gauge"
         )
         send_autodiscover(
-            name="Analog sensor 4", entity_id="ca350_analog_sensor_4", entity_type="sensor",
-            state_topic="comfoair/analog_sensor_4", unit_of_measurement="%", icon="mdi:gauge"
+            name="Analog sensor 4", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_analog_sensor_4", entity_type="sensor",
+            state_topic=f"{ha_mqtt_topic}/analog_sensor_4", unit_of_measurement="%", icon="mdi:gauge"
         )
 
         # Fan speeds
         send_autodiscover(
-            name="Supply fan speed", entity_id="ca350_fan_speed_supply", entity_type="sensor",
-            state_topic="comfoair/intakefanrpm", unit_of_measurement="rpm", icon="mdi:fan"
+            name="Supply fan speed", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_fan_speed_supply", entity_type="sensor",
+            state_topic=f"{ha_mqtt_topic}/intakefanrpm", unit_of_measurement="rpm", icon="mdi:fan"
         )
         send_autodiscover(
-            name="Exhaust fan speed", entity_id="ca350_fan_speed_exhaust", entity_type="sensor",
-            state_topic="comfoair/exhaustfanrpm", unit_of_measurement="rpm", icon="mdi:fan"
+            name="Exhaust fan speed", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_fan_speed_exhaust", entity_type="sensor",
+            state_topic=f"{ha_mqtt_topic}/exhaustfanrpm", unit_of_measurement="rpm", icon="mdi:fan"
         )
 
         send_autodiscover(
-            name="Supply air level", entity_id="ca350_supply_air_level", entity_type="sensor",
-            state_topic="comfoair/intakefanspeed", unit_of_measurement="%", icon="mdi:fan"
+            name="Supply air level", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_supply_air_level", entity_type="sensor",
+            state_topic=f"{ha_mqtt_topic}/intakefanspeed", unit_of_measurement="%", icon="mdi:fan"
         )
         send_autodiscover(
-            name="Return air level", entity_id="ca350_return_air_level", entity_type="sensor",
-            state_topic="comfoair/exhaustfanspeed", unit_of_measurement="%", icon="mdi:fan"
+            name="Return air level", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_return_air_level", entity_type="sensor",
+            state_topic=f"{ha_mqtt_topic}/exhaustfanspeed", unit_of_measurement="%", icon="mdi:fan"
         )
 
         # Filter
         send_autodiscover(
-            name="Filter status", entity_id="ca350_filterstatus", entity_type="binary_sensor",
-            state_topic="comfoair/filterstatus_binary", device_class="problem", icon="mdi:air-filter"
+            name="Filter status", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_filterstatus", entity_type="binary_sensor",
+            state_topic=f"{ha_mqtt_topic}/filterstatus_binary", device_class="problem", icon="mdi:air-filter"
         )
         send_autodiscover(
-            name="Filter Weeks", entity_id="ca350_filter_weeks", entity_type="number",
-            command_topic="comfoair/filterweeks", unit_of_measurement="weeks", icon="mdi:air-filter",
-            min_value=1, max_value=26, state_topic="comfoair/filterweeks_state"
+            name="Filter Weeks", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_filter_weeks", entity_type="number",
+            command_topic=f"{ha_mqtt_topic}/filterweeks", unit_of_measurement="weeks", icon="mdi:air-filter",
+            min_value=1, max_value=26, state_topic=f"{ha_mqtt_topic}/filterweeks_state"
         )
         send_autodiscover(
-            name="Filter Hours", entity_id="ca350_filter_hours", entity_type="sensor",
-            state_topic="comfoair/filterhours", unit_of_measurement="h", icon="mdi:timer"
+            name="Filter Hours", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_filter_hours", entity_type="sensor",
+            state_topic=f"{ha_mqtt_topic}/filterhours", unit_of_measurement="h", icon="mdi:timer"
         )
         send_autodiscover(
-            name="Reset Filter", entity_id="ca350_reset_filter", entity_type="button",
-            command_topic="comfoair/reset_filter", icon="mdi:air-filter"
+            name="Reset Filter", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_reset_filter", entity_type="button",
+            command_topic=f"{ha_mqtt_topic}/reset_filter", icon="mdi:air-filter"
         )
        
         # Bypass valve
         send_autodiscover(
-            name="Bypass valve", entity_id="ca350_bypass_valve", entity_type="binary_sensor",
-            state_topic="comfoair/ca350_bypass_valve", device_class="opening"
+            name="Bypass valve", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_bypass_valve", entity_type="binary_sensor",
+            state_topic=f"{ha_mqtt_topic}/ca350_bypass_valve", device_class="opening"
         )
         send_autodiscover(
-            name="Bypass valve", entity_id="ca350_bypass_valve", entity_type="sensor",
-            state_topic="comfoair/bypassstatus", unit_of_measurement="%", icon="mdi:valve"
+            name="Bypass valve", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_bypass_valve", entity_type="sensor",
+            state_topic=f"{ha_mqtt_topic}/bypassstatus", unit_of_measurement="%", icon="mdi:valve"
         )
         
         # Summer mode
         send_autodiscover(
-            name="Summer mode", entity_id="ca350_summer_mode", entity_type="binary_sensor",
-            state_topic="comfoair/ca350_summer_mode", icon="mdi:sun-snowflake"
+            name="Summer mode", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_summer_mode", entity_type="binary_sensor",
+            state_topic=f"{ha_mqtt_topic}/ca350_summer_mode", icon="mdi:sun-snowflake"
         )
         send_autodiscover(
-            name="Summer mode", entity_id="ca350_summer_mode", entity_type="sensor",
-            state_topic="comfoair/bypassmode", icon="mdi:sun-snowflake"
+            name="Summer mode", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_summer_mode", entity_type="sensor",
+            state_topic=f"{ha_mqtt_topic}/bypassmode", icon="mdi:sun-snowflake"
         )
         
         send_autodiscover(
-            name="Preheating status", entity_id="ca350_preheatingstatus", entity_type="binary_sensor",
-            state_topic="comfoair/preheatingstatus", device_class="heat"
+            name="Preheating status", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_preheatingstatus", entity_type="binary_sensor",
+            state_topic=f"{ha_mqtt_topic}/preheatingstatus", device_class="heat"
         )
 
         # EWT sensor and controls
         send_autodiscover(
-            name="EWT temperature", entity_id="ca350_ewttemp", entity_type="sensor",
-            state_topic="comfoair/ewttemp", device_class="temperature", unit_of_measurement="°C"
+            name="EWT temperature", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_ewttemp", entity_type="sensor",
+            state_topic=f"{ha_mqtt_topic}/ewttemp", device_class="temperature", unit_of_measurement="°C"
         )
         send_autodiscover(
-            name="EWT Low Temperature", entity_id="ca350_ewtlowtemp", entity_type="number",
-            command_topic="comfoair/ewtlowtemp", unit_of_measurement="°C", icon="mdi:thermometer-low",
-            device_class="temperature", min_value=0, max_value=15, state_topic="comfoair/ewtlowtemp_state"
+            name="EWT Low Temperature", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_ewtlowtemp", entity_type="number",
+            command_topic=f"{ha_mqtt_topic}/ewtlowtemp", unit_of_measurement="°C", icon="mdi:thermometer-low",
+            device_class="temperature", min_value=0, max_value=15, state_topic=f"{ha_mqtt_topic}/ewtlowtemp_state"
         )
         send_autodiscover(
-            name="EWT High Temperature", entity_id="ca350_ewthighertemp", entity_type="number",
-            command_topic="comfoair/ewthightemp", unit_of_measurement="°C", icon="mdi:thermometer-high",
-            device_class="temperature", min_value=10, max_value=25, state_topic="comfoair/ewthightemp_state"
+            name="EWT High Temperature", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_ewthighertemp", entity_type="number",
+            command_topic=f"{ha_mqtt_topic}/ewthightemp", unit_of_measurement="°C", icon="mdi:thermometer-high",
+            device_class="temperature", min_value=10, max_value=25, state_topic=f"{ha_mqtt_topic}/ewthightemp_state"
         )
         send_autodiscover(
-            name="EWT Speed Up", entity_id="ca350_ewtspeedup", entity_type="number",
-            command_topic="comfoair/ewtspeedup", unit_of_measurement="%", icon="mdi:fan",
-            device_class="temperature", min_value=0, max_value=99, state_topic="comfoair/ewtspeedup_state"
+            name="EWT Speed Up", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_ewtspeedup", entity_type="number",
+            command_topic=f"{ha_mqtt_topic}/ewtspeedup", unit_of_measurement="%", icon="mdi:fan",
+            device_class="temperature", min_value=0, max_value=99, state_topic=f"{ha_mqtt_topic}/ewtspeedup_state"
         )
 
     else:
-        delete_message("homeassistant/sensor/ca350_outsidetemp/config")
-        delete_message("homeassistant/sensor/ca350_supplytemp/config")
-        delete_message("homeassistant/sensor/ca350_exhausttemp/config")
-        delete_message("homeassistant/sensor/ca350_returntemp/config")
-        delete_message("homeassistant/sensor/ca350_fan_speed_supply/config")
-        delete_message("homeassistant/sensor/ca350_fan_speed_exhaust/config")
-        delete_message("homeassistant/sensor/ca350_return_air_level/config")
-        delete_message("homeassistant/sensor/ca350_supply_air_level/config")
-        delete_message("homeassistant/sensor/ca350_supply_fan/config")
-        delete_message("homeassistant/binary_sensor/ca350_filterstatus/config")
-        delete_message("homeassistant/binary_sensor/ca350_bypass_valve/config")
-        delete_message("homeassistant/binary_sensor/ca350_summer_mode/config")
-        delete_message("homeassistant/sensor/ca350_bypass_valve/config")
-        delete_message("homeassistant/sensor/ca350_summer_mode/config")
-        delete_message("homeassistant/binary_sensor/ca350_preheatingstatus/config")
-        delete_message("homeassistant/sensor/analog_sensor_1/config")
-        delete_message("homeassistant/sensor/analog_sensor_2/config")
-        delete_message("homeassistant/sensor/analog_sensor_3/config")
-        delete_message("homeassistant/sensor/analog_sensor_4/config")
-        delete_message("homeassistant/button/ca350_reset_filter/config")
-        delete_message("homeassistant/sensor/ca350_filter_hours/config")
-        delete_message("homeassistant/number/ca350_filter_weeks/config")
+        delete_message(f"homeassistant/sensor/{HAAutoDiscoveryDeviceId}_ca350_outsidetemp/config")
+        delete_message(f"homeassistant/sensor/{HAAutoDiscoveryDeviceId}_ca350_supplytemp/config")
+        delete_message(f"homeassistant/sensor/{HAAutoDiscoveryDeviceId}_ca350_exhausttemp/config")
+        delete_message(f"homeassistant/sensor/{HAAutoDiscoveryDeviceId}_ca350_returntemp/config")
+        delete_message(f"homeassistant/sensor/{HAAutoDiscoveryDeviceId}_ca350_fan_speed_supply/config")
+        delete_message(f"homeassistant/sensor/{HAAutoDiscoveryDeviceId}_ca350_fan_speed_exhaust/config")
+        delete_message(f"homeassistant/sensor/{HAAutoDiscoveryDeviceId}_ca350_return_air_level/config")
+        delete_message(f"homeassistant/sensor/{HAAutoDiscoveryDeviceId}_ca350_supply_air_level/config")
+        delete_message(f"homeassistant/sensor/{HAAutoDiscoveryDeviceId}_ca350_supply_fan/config")
+        delete_message(f"homeassistant/binary_sensor/{HAAutoDiscoveryDeviceId}_ca350_filterstatus/config")
+        delete_message(f"homeassistant/binary_sensor/{HAAutoDiscoveryDeviceId}_ca350_bypass_valve/config")
+        delete_message(f"homeassistant/binary_sensor/{HAAutoDiscoveryDeviceId}_ca350_summer_mode/config")
+        delete_message(f"homeassistant/sensor/{HAAutoDiscoveryDeviceId}_ca350_bypass_valve/config")
+        delete_message(f"homeassistant/sensor/{HAAutoDiscoveryDeviceId}_ca350_summer_mode/config")
+        delete_message(f"homeassistant/binary_sensor/{HAAutoDiscoveryDeviceId}_ca350_preheatingstatus/config")
+        delete_message(f"homeassistant/sensor/{HAAutoDiscoveryDeviceId}_analog_sensor_1/config")
+        delete_message(f"homeassistant/sensor/{HAAutoDiscoveryDeviceId}_analog_sensor_2/config")
+        delete_message(f"homeassistant/sensor/{HAAutoDiscoveryDeviceId}_analog_sensor_3/config")
+        delete_message(f"homeassistant/sensor/{HAAutoDiscoveryDeviceId}_analog_sensor_4/config")
+        delete_message(f"homeassistant/button/{HAAutoDiscoveryDeviceId}_ca350_reset_filter/config")
+        delete_message(f"homeassistant/sensor/{HAAutoDiscoveryDeviceId}_ca350_filter_hours/config")
+        delete_message(f"homeassistant/number/{HAAutoDiscoveryDeviceId}_ca350_filter_weeks/config")
     #ToDo: Work in progress
     if HAEnableAutoDiscoveryClimate is True:
         info_msg('Home Assistant MQTT Autodiscovery Topic Set: homeassistant/climate/ca350_climate/config')
         send_autodiscover(
-            name="Climate", entity_id="ca350_climate", entity_type="climate",
+            name="Climate", entity_id=f"{HAAutoDiscoveryDeviceId}_ca350_climate", entity_type="climate",
             attributes={
-                "temperature_command_topic":"comfoair/comforttemp/set",
-                "temperature_state_topic":"comfoair/comforttemp",
-                "current_temperature_topic":"comfoair/supplytemp",
+                "temperature_command_topic":f"{ha_mqtt_topic}/comforttemp/set",
+                "temperature_state_topic":f"{ha_mqtt_topic}/comforttemp",
+                "current_temperature_topic":f"{ha_mqtt_topic}/supplytemp",
                 "min_temp":"15",
                 "max_temp":"27",
                 "temp_step":"1",
                 "modes":["off", "fan_only"],
-                "mode_state_topic":"comfoair/ha_climate_mode",
-                "mode_command_topic":"comfoair/ha_climate_mode/set",
+                "mode_state_topic":f"{ha_mqtt_topic}/ha_climate_mode",
+                "mode_command_topic":f"{ha_mqtt_topic}/ha_climate_mode/set",
                 "fan_modes":["off", "low", "medium", "high"],
-                "fan_mode_state_topic":"comfoair/ha_climate_mode/fan",
-                "fan_mode_command_topic":"comfoair/ha_climate_mode/fan/set",
+                "fan_mode_state_topic":f"{ha_mqtt_topic}/ha_climate_mode/fan",
+                "fan_mode_command_topic":f"{ha_mqtt_topic}/ha_climate_mode/fan/set",
                 "temperature_unit":"C"
             }
         )
     else:
-        delete_message("homeassistant/climate/ca350_climate/config")
+        delete_message(f"homeassistant/climate/{HAAutoDiscoveryDeviceId}_ca350_climate/config")
     topic_subscribe()
 
 def on_disconnect(client, userdata, rc):
@@ -1053,7 +1053,7 @@ def on_disconnect(client, userdata, rc):
 ###
 
 # Connect to the MQTT broker
-mqttc = mqtt.Client('CA350')
+mqttc = mqtt.Client(HAAutoDiscoveryDeviceId)
 if  MQTTUser != False and MQTTPassword != False :
     mqttc.username_pw_set(MQTTUser,MQTTPassword)
 
@@ -1061,7 +1061,7 @@ if  MQTTUser != False and MQTTPassword != False :
 mqttc.on_connect = on_connect
 mqttc.on_message = on_message
 mqttc.on_disconnect = on_disconnect
-mqttc.will_set("comfoair/status",payload="offline", qos=0, retain=True)
+mqttc.will_set(f"{ha_mqtt_topic}/status",payload="offline", qos=0, retain=True)
 
 
 # Connect to the MQTT server
