@@ -664,6 +664,7 @@ def main():
                         serial_index = serial_index + 1
                         if serial_index >= len(serial_ports):
                             serial_index = 0
+                        warning_msg('Reconnect to serial port:' + serial_ports[serial_index])
                         ser = serial.Serial(port = serial_ports[serial_index], baudrate = 9600, bytesize = serial.EIGHTBITS, parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE)
                 time.sleep(refresh_interval)
                 pass
