@@ -262,10 +262,13 @@ def process_data(data):
                     package_data = data[index:index + l]
                     index = index + l
                     #checksum
+                    checksum = data[index]
+                    c = int.from_bytes(calculate_checksum(data[index - l -2: index]), "big")
                     index = index + 1
                     #package["end"] = data[index: index + 2]
                     index = index + 2
-                    result.append(Command(command, package_data))
+                    if c == checksum:
+                        result.append(Command(command, package_data))
             else:
                 index = index + 1
     except IndexError as e:
