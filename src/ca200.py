@@ -4,6 +4,8 @@ import time
 import sys
 import json
 
+serial_ports = "/dev/ttyUSB0,/dev/ttyUSB1".split(',')
+
 serial_port = "/dev/ttyUSB0"
 refresh_interval = 10
 
@@ -260,10 +262,13 @@ def process_data(data):
                     package_data = data[index:index + l]
                     index = index + l
                     #checksum
+                    checksum = data[index]
+                    c = int.from_bytes(calculate_checksum(data[index - l -2: index]), "big")
                     index = index + 1
                     #package["end"] = data[index: index + 2]
                     index = index + 2
-                    result.append(Command(command, package_data))
+                    if c == checksum:
+                        result.append(Command(command, package_data))
             else:
                 index = index + 1
     except IndexError as e:
@@ -634,27 +639,37 @@ def main():
             time.sleep(10)
             pass
 
+    serial_index = 0
 
     try:
-        ser = serial.Serial(port = serial_port, baudrate = 9600, bytesize = serial.EIGHTBITS, parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE)
+        ser = serial.Serial(port = serial_ports[serial_index], baudrate = 9600, bytesize = serial.EIGHTBITS, parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE)
     except:
         warning_msg('Opening serial port exception:')
         warning_msg(sys.exc_info())
     else:    
         mqttc.loop_start()        
+        serial_error_count = 0
         while True:
             try:
                 data = read_serial(ser)
                 if data is not None:
                     commands=filter_commands(process_data(data))
-                    print_commands(commands)
+                    # print_commands(commands)
                     for c in commands:
                         process_command(c, mqttc)
-                    
-                    get_fan_status(mqttc, ser)
 
+                    get_fan_status(mqttc, ser)
+                    serial_error_count = 0
                 else:
                     print(".")
+                    serial_error_count = serial_error_count + 1
+                    if serial_error_count > 5:
+                        ser.close()
+                        serial_index = serial_index + 1
+                        if serial_index >= len(serial_ports):
+                            serial_index = 0
+                        warning_msg('Reconnect to serial port:' + serial_ports[serial_index])
+                        ser = serial.Serial(port = serial_ports[serial_index], baudrate = 9600, bytesize = serial.EIGHTBITS, parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE)
                 time.sleep(refresh_interval)
                 pass
             except KeyboardInterrupt:
