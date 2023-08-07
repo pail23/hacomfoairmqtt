@@ -464,7 +464,8 @@ def send_autodiscover(mqtt_client, name, entity_id, entity_type, state_topic = N
     sensor_unique_id = ha_auto_discovery_device_id + "-" + entity_id
 
     discovery_message = {
-        "name": ha_auto_discovery_device_name + " " + name,
+        "name": name,
+        "has_entity_name": True,
         "availability_topic":f"{ha_mqtt_topic}/status",
         "payload_available":"online",
         "payload_not_available":"offline",
