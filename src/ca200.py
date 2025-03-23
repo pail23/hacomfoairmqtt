@@ -727,37 +727,37 @@ def topic_subscribe(mqttc: mqtt.Client):
         topic_subscribe(mqttc)
 
 def main():
-
-    # Connect to the MQTT broker
-    mqttc = mqtt.Client(ha_auto_discovery_device_id)
-    if  mqtt_user != False and mqtt_password != False :
-        mqttc.username_pw_set(mqtt_user, mqtt_password)
-
-    # Define the mqtt callbacks
-    mqttc.on_connect = on_connect
-    mqttc.on_message = on_message
-    mqttc.on_disconnect = on_disconnect
-    mqttc.will_set(f"{ha_mqtt_topic}/status",payload="offline", qos=0, retain=True)    
-
-    # Connect to the MQTT server
-    while True:
-        try:
-            mqttc.connect(mqtt_server, mqtt_port, mqtt_keep_alive)
-            break
-        except:
-            warning_msg('Can\'t connect to MQTT broker. Retrying in 10 seconds.')
-            time.sleep(10)
-            pass
-
-    serial_index = 0
+    serial_index = 0    
 
     try:
         ser = serial.Serial(port = serial_ports[serial_index], baudrate = 9600, bytesize = serial.EIGHTBITS, parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE)
-        mqttc.user_data_set(set)
     except:
         warning_msg('Opening serial port exception:')
         warning_msg(sys.exc_info())
-    else:    
+    else:   
+        # Connect to the MQTT broker
+        mqttc = mqtt.Client(ha_auto_discovery_device_id, userdata = ser)
+        if  mqtt_user != False and mqtt_password != False :
+            mqttc.username_pw_set(mqtt_user, mqtt_password)
+
+        # Define the mqtt callbacks
+        mqttc.on_connect = on_connect
+        mqttc.on_message = on_message
+        mqttc.on_disconnect = on_disconnect
+        mqttc.will_set(f"{ha_mqtt_topic}/status",payload="offline", qos=0, retain=True)    
+
+        # Connect to the MQTT server
+        while True:
+            try:
+                mqttc.connect(mqtt_server, mqtt_port, mqtt_keep_alive)
+                break
+            except:
+                warning_msg('Can\'t connect to MQTT broker. Retrying in 10 seconds.')
+                time.sleep(10)
+                pass
+
+
+ 
         mqttc.loop_start()        
         serial_error_count = 0
         while True:
