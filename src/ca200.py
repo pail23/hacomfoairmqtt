@@ -437,6 +437,77 @@ def filter_commands(commands):
         result[c.command] = c
     return list(result.values())
 
+
+def get_filter_status(client: mqtt.Client, ser: serial.Serial):
+    data = send_command(b'\x00\xD9', None, ser)
+
+    if data is None:
+        warning_msg('get_filter_status function could not get serial data')
+    else:
+        if len(data) > 16:
+            
+            if data[8] == 0:
+                FilterStatus = 'Ok'
+                FilterStatusBinary = 'OFF'
+            elif data[8] == 1:
+                FilterStatus = 'Full'
+                FilterStatusBinary = 'ON'
+            else:
+                FilterStatus = 'Unknown'
+                FilterStatusBinary = 'OFF'
+            publish_message(client, msg=str(FilterStatus), mqtt_path='comfoair/filterstatus')
+            publish_message(client, msg=str(FilterStatusBinary), mqtt_path='comfoair/filterstatus_binary')
+            debug_msg('FilterStatus: {0}'.format(FilterStatus))
+        else:
+            warning_msg('get_filter_status data array too short')
+
+def get_filter_weeks(client: mqtt.Client, ser: serial.Serial):
+    data = send_command(b'\x00\xC9', None, ser)
+    if data is None:
+        warning_msg('function get_filter_weeks could not get serial data')
+    else:
+        if len(data) > 4:
+            FilterWeeks = data[4]
+            publish_message(client, msg=str(FilterWeeks), mqtt_path='comfoair/filterweeks_state')
+        else:
+            warning_msg('function get_filter_weeks data array too short')
+
+def set_filter_weeks(nr:int, ser: serial.Serial):
+
+    if 0 <= nr < 256:
+        start = b'\x00\x00\x00\x00'
+        weeks = bytes([nr])
+        end = b'\x00\x00\x00'
+        datasend = start + weeks + end
+        data = send_command(b'\x00\xCB', datasend, ser, expect_reply=False)
+        if data is None:
+            warning_msg('function set_filter_weeks could not get serial data')
+    
+    else:
+        warning_msg('function set_filter_weeks wrong number')
+            
+def get_filter_hours(client: mqtt.Client, ser: serial.Serial):
+    data = send_command(b'\x00\xDD', None, ser)
+
+    if data is None:
+        warning_msg('function get_filter_hours could not get serial data')
+    else:
+        if len(data) > 16:
+            FilterHours = int.from_bytes(data[15:17], byteorder='big')
+            publish_message(client, msg=str(FilterHours), mqtt_path='comfoair/filterhours')
+        else:
+            warning_msg('function get_filter_hours data array too short')
+
+def reset_filter_timer(client: mqtt.Client, ser: serial.Serial):
+    data = send_command(b'\x00\x37', b'\x00\x82\x00\x00\x00\x00\x00', ser, False)
+
+    if data is None:
+        warning_msg('reset_filter_timer function could not get serial data')
+    else:
+        get_filter_weeks(client, ser)
+        get_filter_hours(client, ser)
+        get_filter_status(client, ser)
+
 def publish_message(mqtt_client, msg, mqtt_path):
     try:
         mqtt_client.publish(mqtt_path, payload=msg, qos=0, retain=True)
@@ -559,21 +630,27 @@ def on_connect(client, userdata, flags, rc):
         send_autodiscover(client,
             name="Filter Hours", entity_id=f"{ha_auto_discovery_device_id}_filter_hours", entity_type="sensor",
             state_topic=f"{ha_mqtt_topic}/filterhours", unit_of_measurement="h", icon="mdi:timer"
-        )        
+        )     
+        send_autodiscover(client,
+            name="Reset Filter", entity_id=f"{ha_auto_discovery_device_id}_reset_filter", entity_type="button",
+            command_topic=f"{ha_mqtt_topic}/reset_filter", icon="mdi:air-filter"
+        )
+
     else:
         delete_message(client, f"homeassistant/sensor/{ha_auto_discovery_device_id}_outsidetemp/config")
         delete_message(client, f"homeassistant/sensor/{ha_auto_discovery_device_id}_supplytemp/config")
         delete_message(client, f"homeassistant/sensor/{ha_auto_discovery_device_id}_exhausttemp/config")
         delete_message(client, f"homeassistant/sensor/{ha_auto_discovery_device_id}_returntemp/config")
 
-        delete_message(f"homeassistant/sensor/{ha_auto_discovery_device_id}_fan_speed_supply/config")
-        delete_message(f"homeassistant/sensor/{ha_auto_discovery_device_id}_fan_speed_exhaust/config")
-        delete_message(f"homeassistant/sensor/{ha_auto_discovery_device_id}_return_air_level/config")
-        delete_message(f"homeassistant/sensor/{ha_auto_discovery_device_id}_supply_air_level/config")        
+        delete_message(client,f"homeassistant/sensor/{ha_auto_discovery_device_id}_fan_speed_supply/config")
+        delete_message(client,f"homeassistant/sensor/{ha_auto_discovery_device_id}_fan_speed_exhaust/config")
+        delete_message(client,f"homeassistant/sensor/{ha_auto_discovery_device_id}_return_air_level/config")
+        delete_message(client,f"homeassistant/sensor/{ha_auto_discovery_device_id}_supply_air_level/config")        
 
         delete_message(client, f"homeassistant/binary_sensor/{ha_auto_discovery_device_id}_filterstatus/config")
         delete_message(client, f"homeassistant/number/{ha_auto_discovery_device_id}_filter_weeks/config")        
         delete_message(client, f"homeassistant/sensor/{ha_auto_discovery_device_id}_filter_hours/config")
+        delete_message(client, f"homeassistant/button/{ha_auto_discovery_device_id}_reset_filter/config")
 
     if ha_enable_auto_discovery_climate:
         info_msg('Home Assistant MQTT Autodiscovery Topic Set: homeassistant/climate/ca200_climate/config')
@@ -595,6 +672,7 @@ def on_connect(client, userdata, flags, rc):
         )
     else:
         delete_message(client, f"homeassistant/climate/{ha_auto_discovery_device_id}_climate/config")
+    topic_subscribe(client)
 
 
 def on_disconnect(client, userdata, rc):
@@ -605,16 +683,48 @@ def on_disconnect(client, userdata, rc):
 def on_message(client, userdata, message):
     msg_data = str(message.payload.decode("utf-8"))
     print(f"mqtt message {msg_data}")
+    msg_data = str(message.payload.decode("utf-8"))
+    if message.topic == f"{ha_mqtt_topic}/reset_filter":
+        selector = msg_data
+        if selector == "PRESS":
+            reset_filter_timer(client, userdata)
+
 
 def recon(mqtt_client):
     try:
         mqtt_client.reconnect()
         info_msg('Successfull reconnected to the MQTT server')
-        topic_subscribe()
+        topic_subscribe(mqtt_client)
     except:
         warning_msg('Could not reconnect to the MQTT server. Trying again in 10 seconds')
         time.sleep(10)
-        recon()
+        recon(mqtt_client)
+
+
+def topic_subscribe(mqttc: mqtt.Client):
+    try:
+        mqttc.subscribe(f"{ha_mqtt_topic}/comforttemp/set", 0)
+        info_msg('Successfull subscribed to the comfoair/comforttemp/set topic')
+        mqttc.subscribe(f"{ha_mqtt_topic}/ha_climate_mode/set", 0)
+        info_msg('Successfull subscribed to the comfoair/ha_climate_mode/set topic')
+        mqttc.subscribe(f"{ha_mqtt_topic}/ha_climate_mode/fan/set", 0)
+        info_msg('Successfull subscribed to the comfoair/ha_climate_mode/fan/set topic')
+        mqttc.subscribe(f"{ha_mqtt_topic}/reset_filter", 0)
+        info_msg('Successfull subscribed to the comfoair/reset_filter topic')
+        mqttc.subscribe(f"{ha_mqtt_topic}/filterweeks", 0)
+        info_msg('Successfull subscribed to the comfoair/filterweeks topic')
+
+        mqttc.subscribe(f"{ha_mqtt_topic}/ewtlowtemp", 0)
+        info_msg('Successfull subscribed to the comfoair/ewtlowtemp topic')
+        mqttc.subscribe(f"{ha_mqtt_topic}/ewthightemp", 0)
+        info_msg('Successfull subscribed to the comfoair/ewthightemp topic')
+        mqttc.subscribe(f"{ha_mqtt_topic}/ewtspeedup", 0)
+        info_msg('Successfull subscribed to the comfoair/ewtspeedup topic')
+        
+    except:
+        warning_msg('There was an error while subscribing to the MQTT topic(s), trying again in 10 seconds')
+        time.sleep(10)
+        topic_subscribe(mqttc)
 
 def main():
 
@@ -643,6 +753,7 @@ def main():
 
     try:
         ser = serial.Serial(port = serial_ports[serial_index], baudrate = 9600, bytesize = serial.EIGHTBITS, parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE)
+        mqttc.user_data_set(set)
     except:
         warning_msg('Opening serial port exception:')
         warning_msg(sys.exc_info())
