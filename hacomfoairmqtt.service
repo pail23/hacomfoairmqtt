@@ -1,0 +1,14 @@
+[Unit]
+Description=HA Comfoair to mqtt
+After=network.target
+StartLimitIntervalSec=0
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=smarthome
+WorkingDirectory=/opt/hacomfoairmqtt/src
+ExecStart=/home/smarthome/.local/bin/uv run ca200.py
+
+[Install]
+WantedBy=multi-user.target
