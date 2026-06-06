@@ -578,7 +578,7 @@ def send_autodiscover(mqtt_client, name, entity_id, entity_type, state_topic = N
     debug_msg('Sending autodiscover for ' + mqtt_config_topic)
     publish_message(mqtt_client, mqtt_message, mqtt_config_topic)
 
-def on_connect(client, userdata, flags, rc):
+def on_connect(client, userdata, flags, rc, properties):
     publish_message(client, "online",f"{ha_mqtt_topic}/status")
     if ha_enable_auto_discovery_sensors:
         info_msg('Home Assistant MQTT Autodiscovery Topic Set: homeassistant/sensor/ca350_[nametemp]/config')
@@ -736,7 +736,7 @@ def main():
         warning_msg(sys.exc_info())
     else:   
         # Connect to the MQTT broker
-        mqttc = mqtt.Client(ha_auto_discovery_device_id, userdata = ser)
+        mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, ha_auto_discovery_device_id, userdata = ser)
         if  mqtt_user != False and mqtt_password != False :
             mqttc.username_pw_set(mqtt_user, mqtt_password)
 
