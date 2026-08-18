@@ -3,6 +3,8 @@ import serial
 import time
 import sys
 import json
+import configparser
+import os
 
 serial_ports = "/dev/ttyUSB0,/dev/ttyUSB1".split(',')
 
@@ -16,12 +18,28 @@ ha_auto_discovery_device_manufacturer = "Zehnder"
 ha_auto_discovery_device_model="ComfoAir 200"
 ha_enable_auto_discovery_sensors = True
 ha_enable_auto_discovery_climate = True
+
+config = configparser.ConfigParser()
+config.read(os.path.dirname(os.path.abspath(__file__)) + '/config.ini')
+
 mqtt_user = "smarthome"
 mqtt_password = "smarthome!23"
-mqtt_server = "homeassistant.stadel15.net"
+mqtt_server = "mqtt.stadel15.net"
 mqtt_port = 1883
 mqtt_keep_alive = 45
-ha_mqtt_topic = f"comfoair/{ha_auto_discovery_device_id}"
+
+
+if config.has_section('MQTT'):
+    mqtt_server = config['MQTT']['MQTTServer']            # MQTT broker - IP
+    mqtt_port = int(config['MQTT']['MQTTPort'])           # MQTT broker - Port
+    mqtt_keep_alive = int(config['MQTT']['MQTTKeepalive']) # MQTT broker - keepalive
+    mqtt_user = config['MQTT']['MQTTUser']                # MQTT broker - user - default: 0 (disabled/no authentication)
+    mqtt_password = config['MQTT']['MQTTPassword']        # MQTT broker - password - default: 0 (disabled/no authentication)
+
+
+
+
+ha_mqtt_topic = f"comfoairs/{ha_auto_discovery_device_id}"
 debug = True
 
 
