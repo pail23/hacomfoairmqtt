@@ -22,9 +22,9 @@ ha_enable_auto_discovery_climate = True
 config = configparser.ConfigParser()
 config.read(os.path.dirname(os.path.abspath(__file__)) + '/config.ini')
 
-mqtt_user = "smarthome"
-mqtt_password = "smarthome!23"
-mqtt_server = "mqtt.stadel15.net"
+mqtt_user = ""
+mqtt_password = ""
+mqtt_server = ""
 mqtt_port = 1883
 mqtt_keep_alive = 45
 
